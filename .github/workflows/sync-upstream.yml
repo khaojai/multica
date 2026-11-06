@@ -15,7 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
+  actions: write
 
 jobs:
   sync:
@@ -26,11 +27,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ssh-key: ${{ secrets.DEPLOY_KEY }}
 
       - name: Tag patched upstream release
         env:
           INPUT_TAG: ${{ inputs.upstream_tag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           UPSTREAM_URL="${UPSTREAM_URL:-https://github.com/multica-ai/multica.git}"
@@ -79,6 +80,8 @@ jobs:
           tag="${target}-khaojai"
           git tag -a "$tag" -m "Upstream $target with khaojai/entra patch (patch head ${patch_head})"
           git push origin "refs/tags/$tag"
+          # A tag pushed with GITHUB_TOKEN does not trigger release.yml's push trigger; a dispatch does.
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$tag"
 
           msg="Pushed $tag: upstream $target plus $(git rev-list --count "$base..$patch_head") patch commit(s) from khaojai/entra at ${patch_head:0:12}"
           echo "$msg"
