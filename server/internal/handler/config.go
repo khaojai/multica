@@ -26,8 +26,10 @@ type AppConfig struct {
 	// Public auth config consumed by the web app at runtime so self-hosted
 	// deployments do not need to rebuild the frontend image when operators
 	// toggle signup or wire Google OAuth.
-	AllowSignup    bool   `json:"allow_signup"`
-	GoogleClientID string `json:"google_client_id,omitempty"`
+	AllowSignup       bool   `json:"allow_signup"`
+	GoogleClientID    string `json:"google_client_id,omitempty"`
+	MicrosoftClientID string `json:"microsoft_client_id,omitempty"`
+	MicrosoftTenantID string `json:"microsoft_tenant_id,omitempty"`
 	// WorkspaceCreationDisabled mirrors the server-side
 	// DISABLE_WORKSPACE_CREATION env var so the UI can hide every
 	// "Create workspace" affordance on self-hosted instances. Omitted
@@ -122,6 +124,8 @@ func (h *Handler) GetConfig(w http.ResponseWriter, r *http.Request) {
 		CommentDeleteKeepRepliesSupported:  true,
 		AllowSignup:                        os.Getenv("ALLOW_SIGNUP") != "false",
 		GoogleClientID:                     os.Getenv("GOOGLE_CLIENT_ID"),
+		MicrosoftClientID:                  os.Getenv("MICROSOFT_CLIENT_ID"),
+		MicrosoftTenantID:                  os.Getenv("MICROSOFT_TENANT_ID"),
 		WorkspaceCreationDisabled:          os.Getenv("DISABLE_WORKSPACE_CREATION") == "true",
 	}
 	if h.Storage != nil {

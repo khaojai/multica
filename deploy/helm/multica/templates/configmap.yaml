@@ -27,6 +27,9 @@ data:
   MULTICA_CLOUD_URL: {{ .Values.backend.config.cloud.url | quote }}
   GOOGLE_CLIENT_ID: {{ .Values.backend.config.googleClientId | quote }}
   GOOGLE_REDIRECT_URI: {{ .Values.backend.config.googleRedirectUri | quote }}
+  MICROSOFT_CLIENT_ID: {{ .Values.backend.config.microsoftClientId | quote }}
+  MICROSOFT_TENANT_ID: {{ .Values.backend.config.microsoftTenantId | quote }}
+  MICROSOFT_REDIRECT_URI: {{ .Values.backend.config.microsoftRedirectUri | quote }}
   S3_BUCKET: {{ .Values.backend.config.s3Bucket | quote }}
   S3_REGION: {{ .Values.backend.config.s3Region | quote }}
   CLOUDFRONT_DOMAIN: {{ .Values.backend.config.cloudfrontDomain | quote }}

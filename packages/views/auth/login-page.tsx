@@ -34,6 +34,13 @@ interface GoogleAuthConfig {
   state?: string;
 }
 
+interface MicrosoftAuthConfig {
+  clientId: string;
+  tenantId: string;
+  redirectUri: string;
+  state?: string;
+}
+
 interface CliCallbackConfig {
   /** Validated localhost callback URL */
   url: string;
@@ -49,6 +56,8 @@ interface LoginPageProps {
   onSuccess: () => void;
   /** Google OAuth config. Omit to disable Google login. */
   google?: GoogleAuthConfig;
+  /** Microsoft Entra ID OAuth config. Omit to disable Microsoft login. */
+  microsoft?: MicrosoftAuthConfig;
   /** CLI callback config for authorizing CLI tools. */
   cliCallback?: CliCallbackConfig;
   /** Called after a token is obtained (e.g. to set cookies). */
@@ -96,6 +105,7 @@ export function LoginPage({
   logo,
   onSuccess,
   google,
+  microsoft,
   cliCallback,
   onTokenObtained,
   onGoogleLogin,
@@ -291,6 +301,20 @@ export function LoginPage({
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
   };
 
+  const handleMicrosoftLogin = () => {
+    if (!microsoft) return;
+    const params = new URLSearchParams({
+      client_id: microsoft.clientId,
+      response_type: "code",
+      redirect_uri: microsoft.redirectUri,
+      response_mode: "query",
+      scope: "openid email profile",
+      prompt: "select_account",
+    });
+    if (microsoft.state) params.set("state", microsoft.state);
+    window.location.href = `https://login.microsoftonline.com/${encodeURIComponent(microsoft.tenantId)}/oauth2/v2.0/authorize?${params}`;
+  };
+
   // CLI confirm step
 
   if (step === "cli_confirm" && existingUser) {
@@ -483,6 +507,24 @@ export function LoginPage({
                 />
               </svg>
               {t(($) => $.signin.google)}
+            </Button>
+          )}
+          {microsoft && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              size="lg"
+              onClick={handleMicrosoftLogin}
+              disabled={loading}
+            >
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 23 23">
+                <path fill="#F25022" d="M1 1h10v10H1z" />
+                <path fill="#7FBA00" d="M12 1h10v10H12z" />
+                <path fill="#00A4EF" d="M1 12h10v10H1z" />
+                <path fill="#FFB900" d="M12 12h10v10H12z" />
+              </svg>
+              {t(($) => $.signin.microsoft)}
             </Button>
           )}
           {extra && <div className="w-full pt-1 text-center">{extra}</div>}

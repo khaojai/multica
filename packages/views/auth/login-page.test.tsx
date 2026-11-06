@@ -410,6 +410,28 @@ describe("LoginPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("shows the Microsoft button only when the microsoft prop is provided", () => {
+    const { unmount } = render(
+      <LoginPage
+        onSuccess={onSuccess}
+        microsoft={{
+          clientId: "ms-123",
+          tenantId: "tenant-1",
+          redirectUri: "http://localhost/cb",
+        }}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /continue with microsoft/i }),
+    ).toBeInTheDocument();
+    unmount();
+
+    renderWithI18n(<LoginPage onSuccess={onSuccess} />);
+    expect(
+      screen.queryByRole("button", { name: /continue with microsoft/i }),
+    ).not.toBeInTheDocument();
+  });
+
   // -------------------------------------------------------------------------
   // CLI callback — existing session
   // -------------------------------------------------------------------------

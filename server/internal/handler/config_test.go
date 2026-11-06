@@ -63,6 +63,8 @@ func TestGetConfigIncludesRuntimeAuthConfig(t *testing.T) {
 
 	t.Setenv("ALLOW_SIGNUP", "false")
 	t.Setenv("GOOGLE_CLIENT_ID", "google-client-id")
+	t.Setenv("MICROSOFT_CLIENT_ID", "ms-client-id")
+	t.Setenv("MICROSOFT_TENANT_ID", "ms-tenant-id")
 	t.Setenv("POSTHOG_API_KEY", "phc_test")
 	t.Setenv("POSTHOG_HOST", "https://eu.i.posthog.com")
 	t.Setenv("MULTICA_DAEMON_SERVER_URL", "")
@@ -93,6 +95,9 @@ func TestGetConfigIncludesRuntimeAuthConfig(t *testing.T) {
 	}
 	if cfg.GoogleClientID != "google-client-id" {
 		t.Fatalf("google_client_id: want google-client-id, got %q", cfg.GoogleClientID)
+	}
+	if cfg.MicrosoftClientID != "ms-client-id" || cfg.MicrosoftTenantID != "ms-tenant-id" {
+		t.Fatalf("microsoft config: got %q / %q", cfg.MicrosoftClientID, cfg.MicrosoftTenantID)
 	}
 	if cfg.PosthogKey != "phc_test" {
 		t.Fatalf("posthog_key: want phc_test, got %q", cfg.PosthogKey)

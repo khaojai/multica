@@ -61,6 +61,8 @@ function LoginPageContent() {
   const qc = useQueryClient();
   const { t } = useT("auth");
   const googleClientId = useConfigStore((state) => state.googleClientId);
+  const microsoftClientId = useConfigStore((state) => state.microsoftClientId);
+  const microsoftTenantId = useConfigStore((state) => state.microsoftTenantId);
   const user = useAuthStore((s) => s.user);
   const isLoading = useAuthStore((s) => s.isLoading);
   const searchParams = useSearchParams();
@@ -224,6 +226,16 @@ function LoginPageContent() {
               clientId: googleClientId,
               redirectUri: `${window.location.origin}/auth/callback`,
               state: googleState,
+            }
+          : undefined
+      }
+      microsoft={
+        microsoftClientId && microsoftTenantId
+          ? {
+              clientId: microsoftClientId,
+              tenantId: microsoftTenantId,
+              redirectUri: `${window.location.origin}/auth/callback`,
+              state: [googleState, "provider:microsoft"].filter(Boolean).join(","),
             }
           : undefined
       }

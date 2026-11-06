@@ -11,6 +11,7 @@ const {
   mockRouter,
   mockSearchParams,
   mockLoginWithGoogle,
+  mockLoginWithMicrosoft,
   mockListWorkspaces,
   mockListMyInvitations,
   mockSetQueryData,
@@ -23,6 +24,7 @@ const {
     mockRouter: { push: mockPush },
     mockSearchParams: new URLSearchParams(),
     mockLoginWithGoogle: vi.fn(),
+    mockLoginWithMicrosoft: vi.fn(),
     mockListWorkspaces: vi.fn(),
     mockListMyInvitations: vi.fn(),
     mockSetQueryData,
@@ -82,7 +84,10 @@ vi.mock("@multica/core/auth", async () => {
   return {
     ...actual,
     useAuthStore: (selector: (s: unknown) => unknown) =>
-      selector({ loginWithGoogle: mockLoginWithGoogle }),
+      selector({
+        loginWithGoogle: mockLoginWithGoogle,
+        loginWithMicrosoft: mockLoginWithMicrosoft,
+      }),
   };
 });
 
@@ -138,6 +143,21 @@ describe("CallbackPage", () => {
     mockLoginWithGoogle.mockResolvedValue(makeUser());
     mockListWorkspaces.mockResolvedValue([]);
     mockListMyInvitations.mockResolvedValue([]);
+  });
+
+  it("routes provider:microsoft state to the Microsoft login", async () => {
+    mockLoginWithMicrosoft.mockResolvedValue(makeUser());
+    mockSearchParams.set("state", "provider:microsoft");
+
+    renderCallback();
+
+    await waitFor(() => {
+      expect(mockLoginWithMicrosoft).toHaveBeenCalledWith(
+        "test-code",
+        expect.stringContaining("/auth/callback"),
+      );
+    });
+    expect(mockLoginWithGoogle).not.toHaveBeenCalled();
   });
 
   it("renders callback errors in the selected locale", async () => {
