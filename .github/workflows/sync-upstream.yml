@@ -1,0 +1,85 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: "Upstream tag to build (default: newest stable tag)"
+        required: false
+        type: string
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: github.repository == 'khaojai/multica'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ssh-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Tag patched upstream release
+        env:
+          INPUT_TAG: ${{ inputs.upstream_tag }}
+        run: |
+          set -euo pipefail
+          UPSTREAM_URL="${UPSTREAM_URL:-https://github.com/multica-ai/multica.git}"
+          SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          FLOOR=v0.8.0
+          STABLE='^v[0-9]+\.[0-9]+\.[0-9]+$'
+
+          git fetch --no-tags origin '+refs/heads/khaojai/entra:refs/remotes/origin/khaojai/entra'
+          git fetch --no-tags "$UPSTREAM_URL" '+refs/tags/*:refs/upstream-tags/*'
+
+          at_or_above_floor() {
+            [ "$(printf '%s\n%s\n' "$FLOOR" "$1" | sort -V | head -n1)" = "$FLOOR" ]
+          }
+
+          if [ -n "${INPUT_TAG:-}" ]; then
+            target="$INPUT_TAG"
+            echo "$target" | grep -Eq "$STABLE" || { echo "::error::$target is not a stable vX.Y.Z tag"; exit 1; }
+            at_or_above_floor "$target" || { echo "::error::$target is below $FLOOR"; exit 1; }
+            git rev-parse -q --verify "refs/upstream-tags/$target^{commit}" >/dev/null \
+              || { echo "::error::$target does not exist upstream"; exit 1; }
+          else
+            target=""
+            while read -r t; do
+              if at_or_above_floor "$t"; then target="$t"; fi
+            done < <(git for-each-ref --format='%(refname:strip=2)' refs/upstream-tags | grep -E "$STABLE" | sort -V)
+            [ -n "$target" ] || { echo "::error::no stable upstream tag >= $FLOOR"; exit 1; }
+          fi
+
+          existing="$(git ls-remote --tags origin "refs/tags/${target}-khaojai" "refs/tags/${target}-khaojai.*")"
+          if [ -n "$existing" ]; then
+            msg="Skipped: origin already has a ${target}-khaojai tag"
+            echo "$msg"
+            echo "$msg" >> "$SUMMARY"
+            exit 0
+          fi
+
+          patch_head="$(git rev-parse origin/khaojai/entra)"
+          base="$(git merge-base "refs/upstream-tags/$target" origin/khaojai/entra)"
+          [ "$base" != "$patch_head" ] || { echo "::error::khaojai/entra has no commits beyond $base"; exit 1; }
+
+          git config user.name "khaojai-sync-bot"
+          git config user.email "khaojai-sync-bot@users.noreply.github.com"
+          git checkout --detach "refs/upstream-tags/$target"
+          git cherry-pick "$base..origin/khaojai/entra"
+
+          tag="${target}-khaojai"
+          git tag -a "$tag" -m "Upstream $target with khaojai/entra patch (patch head ${patch_head})"
+          git push origin "refs/tags/$tag"
+
+          msg="Pushed $tag: upstream $target plus $(git rev-list --count "$base..$patch_head") patch commit(s) from khaojai/entra at ${patch_head:0:12}"
+          echo "$msg"
+          echo "$msg" >> "$SUMMARY"
