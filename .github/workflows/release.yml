@@ -7,6 +7,7 @@ on:
       # tags broadly at the trigger layer, then enforce strict semver below.
       - "v*.*.*"
       - "!v*-dirty*"
+  workflow_dispatch:
 
 permissions:
   contents: write
