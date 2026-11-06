@@ -1,6 +1,6 @@
 # khaojai/multica fork
 
-This is a public fork of multica-ai/multica. It carries one patch, Microsoft Entra login plus a `workflow_dispatch` trigger on `release.yml`, kept as a short linear commit series on the branch `khaojai/entra`, based on upstream tag v0.8.0. Everything else is upstream unchanged. The fork's `main` is not used for builds.
+This is a public fork of multica-ai/multica. It carries one patch, Microsoft Entra login plus a `workflow_dispatch` trigger on `release.yml`, kept as a short linear commit series on the branch `khaojai/entra`, based on upstream tag v0.8.0. Everything else is upstream unchanged. The fork's `main` carries only the fork's own workflows (`sync-upstream.yml`, `mirror-to-ecr.yml`) and is not used for builds.
 
 ## Branches and tags
 
@@ -12,12 +12,15 @@ Upstream tags are never pushed to this repo. A bare `vX.Y.Z` tag here would buil
 
 `.github/workflows/sync-upstream.yml` runs daily at 02:17 UTC and on manual dispatch. It picks the newest stable upstream tag (v0.8.0 or later), or the `upstream_tag` input if given. If origin already has `<tag>-khaojai` or `<tag>-khaojai.N` it does nothing. Otherwise it cherry-picks the `khaojai/entra` commits onto the upstream tag, tags the result `<tag>-khaojai`, pushes only that tag, then runs `release.yml` on it with `gh workflow run --ref <tag>`. The dispatch is needed because a tag pushed with `GITHUB_TOKEN` does not trigger workflows, and the khaojai org has deploy keys disabled. A cherry-pick conflict fails the job before anything is pushed.
 
+After each successful `Release` run (through its `workflow_run` trigger, and also dispatched by the sync job once the build it started finishes), `.github/workflows/mirror-to-ecr.yml` copies both multi-arch images to ECR `multica/backend` and `multica/web` in account 143495498933 (ap-southeast-1), using the OIDC role `github-actions-khaojai-multica-ecr-push`. That role only trusts `refs/heads/main`, so the workflow has to run from main. A tag that already exists in ECR is skipped, and runs on refs that are not `vX.Y.Z-khaojai[.N]` tags are ignored. To mirror a tag by hand:
+
+    gh workflow run mirror-to-ecr.yml -R khaojai/multica -f tag=vX.Y.Z-khaojai
+
 GitHub disables scheduled workflows after 60 days without repository activity. If the daily run stops, re-enable it in the Actions tab, or run it by hand.
 
 ## One-time setup
 
-1. After the first build, make the packages `multica-backend` and `multica-web` public in the GitHub package settings.
-2. Disable workflows that only make sense upstream:
+1. Disable workflows that only make sense upstream:
 
        gh workflow disable ci.yml -R khaojai/multica
        gh workflow disable mobile-verify.yml -R khaojai/multica
@@ -46,4 +49,4 @@ The sync workflow skips versions that already have any `-khaojai` or `-khaojai.N
 
 ## Deployment
 
-The deployment lives in github.com/insightblue-co/argocd-apps under `gitops/multica`. argocd-image-updater picks up new `-khaojai` image tags.
+The deployment lives in github.com/insightblue-co/argocd-apps under `gitops/multica`. The ghcr packages stay private. insightblue pulls the images from the ECR copies, and argocd-image-updater picks up new `-khaojai` tags there.
